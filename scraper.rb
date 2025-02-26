@@ -104,9 +104,9 @@ doc.css('tr.file').each_with_index do |row, index|
     if existing_entry.empty?  # Only insert if the entry doesn't already exist
       # Save data to the database
       db.execute("INSERT INTO waratah_wynyard 
-        (description, date_scraped, date_received, on_notice_to, council_reference, document_description, title_reference) 
+        (address, description, date_scraped, date_received, on_notice_to, council_reference, document_description) 
         VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [description, date_scraped, date_received, on_notice_to, council_reference, document_description, title_reference])
+        [address, description, date_scraped, date_received, on_notice_to, council_reference, document_description])
 
       logger.info("Data for #{council_reference} saved to database.")
     else
