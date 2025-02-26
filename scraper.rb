@@ -27,7 +27,7 @@ doc = Nokogiri::HTML(page_html)
 # Step 3: Initialize the SQLite database
 db = SQLite3::Database.new "data.sqlite"
 
-# Create table
+# Create table if it doesn't already exist
 db.execute <<-SQL
   CREATE TABLE IF NOT EXISTS waratah_wynyard (
     id INTEGER PRIMARY KEY,
@@ -62,29 +62,35 @@ date_scraped = Date.today.to_s
 
 logger.info("Start Extraction of Data")
 
+# Process each row from the table
 doc.css('.wpfd-search-result').each_with_index do |row, index|
-# Extract the title from the <a> tag's title attribute
-# title_reference = row.at_css('.wpfd_downloadlink')['title']
+  # Extract the title (DA number + address)
+  title_reference = row.at_css('.wpfd-file-crop-title').text.strip
+  
+  # Extract the council reference (DA number)
+  council_reference = title_reference.split(' - ').first.strip
 
-# Extract council reference (DA number from the title)
-council_reference = title_reference.split(' - ').first
+  # Extract the address (the part between DA number and description)
+  address = title_reference.match(/DA\d+ - (.*?)(?= - )/) ? title_reference.match(/DA\d+ - (.*?)(?= - )/)[1].strip : 'Address not found'
 
-# Extract address from the title (using regex to capture the address part)
-address = title_reference.match(/(\d+[A-Za-z]*\s[\w\s,]+)/)&.captures&.first
+  # Extract the description (everything after the last " - " in the title)
+  description = title_reference.split(' - ').last.strip
 
-# Extract description from the title (everything between the address and "Notification expiry date")
-description = title_reference.match(/-\s([^-\d]+)-\sNotification expiry date/)&.captures&.first&.strip
+  # Extract the "date_received" (Date modified column)
+  date_received = row.at_css('.file_modified').text.strip
+  date_received = Date.parse(date_received).strftime('%Y-%m-%d') # Reformat to YYYY-MM-DD
 
-# Extract the on_notice_to date from the title
-on_notice_to = title_reference.match(/(\d{1,2} [A-Za-z]+ \d{4})/)&.captures&.first
+  # Extract the PDF link (from the Download column)
+  document_description = row.at_css('.wpfd_downloadlink')['href']
 
-# Document URL (from the <a> tag in the 'Download' column)
-document_description = row.at_css('.wpfd_downloadlink')['href']
+  # Calculate "on_notice_to" date as 14 days after the "date_received"
+  on_notice_to = (Date.parse(date_received) + 14).strftime('%Y-%m-%d')
 
-# Output the extracted information
+  # Output the extracted information
   logger.info("Council Reference: #{council_reference}")
   logger.info("Address: #{address}")
   logger.info("Description: #{description}")
+  logger.info("Date Received: #{date_received}")
   logger.info("On Notice To: #{on_notice_to}")
   logger.info("PDF Link: #{document_description}")
   logger.info("-----------------------------------")
