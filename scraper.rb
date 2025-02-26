@@ -63,8 +63,8 @@ date_scraped = Date.today.to_s
 logger.info("Start Extraction of Data")
 
 # Loop through all rows in the table
-doc.css('.wpfd-search-result').each_with_index do |row, index|
-  # Extract the title (DA number + address)
+doc.css('tr.file').each_with_index do |row, index|
+  # Ensure each row has a title
   title_reference_element = row.at_css('.wpfd-file-crop-title')
 
   if title_reference_element
@@ -79,8 +79,8 @@ doc.css('.wpfd-search-result').each_with_index do |row, index|
     # Extract the description (everything after the last " - " in the title)
     description = title_reference.split(' - ').last.strip
 
-    # Extract the "date_received" (Date modified column)
-    date_received = row.at_css('.file_modified') ? row.at_css('.file_modified').text.strip : 'Date not found'
+    # Extract the "date_received" (Date added column)
+    date_received = row.at_css('.file_created') ? row.at_css('.file_created').text.strip : 'Date not found'
     date_received = Date.parse(date_received).strftime('%Y-%m-%d') if date_received != 'Date not found'
 
     # Extract the PDF link (from the Download column)
