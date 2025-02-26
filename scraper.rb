@@ -73,8 +73,8 @@ doc.css('tr.file').each_with_index do |row, index|
     # Extract the council reference (DA number)
     council_reference = title_reference.split(' - ').first.strip
 
-    # Extract the address from the title (between DA reference number and the first '-')
-    address = title_reference.match(/DA[\d\-\w]+ - (.*?)(?= -)/) ? title_reference.match(/DA[\d\-\w]+ - (.*?)(?= -)/)[1].strip : 'Address not found'
+    # Extract the address from the title (everything between the first and second hyphen)
+    address = title_reference.match(/- (.*?) -/) ? title_reference.match(/- (.*?) -/)[1].strip : 'Address not found'
 
     # Extract the description (everything after the last " - " in the title)
     description = title_reference.split(' - ').last.strip
