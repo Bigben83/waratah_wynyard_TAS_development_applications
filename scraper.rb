@@ -62,7 +62,7 @@ date_scraped = Date.today.to_s
 
 logger.info("Start Extraction of Data")
 
-# Process each row from the table
+# Loop through all rows in the table
 doc.css('.wpfd-search-result').each_with_index do |row, index|
   # Extract the title (DA number + address)
   title_reference_element = row.at_css('.wpfd-file-crop-title')
@@ -89,7 +89,7 @@ doc.css('.wpfd-search-result').each_with_index do |row, index|
     # Calculate "on_notice_to" date as 14 days after the "date_received"
     on_notice_to = (Date.parse(date_received) + 14).strftime('%Y-%m-%d') if date_received != 'Date not found'
 
-    # Log the extracted data
+    # Log the extracted data for debugging purposes
     logger.info("Council Reference: #{council_reference}")
     logger.info("Address: #{address}")
     logger.info("Description: #{description}")
