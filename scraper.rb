@@ -65,49 +65,55 @@ logger.info("Start Extraction of Data")
 # Process each row from the table
 doc.css('.wpfd-search-result').each_with_index do |row, index|
   # Extract the title (DA number + address)
-  title_reference = row.at_css('.wpfd-file-crop-title').text.strip
-  
-  # Extract the council reference (DA number)
-  council_reference = title_reference.split(' - ').first.strip
+  title_reference_element = row.at_css('.wpfd-file-crop-title')
 
-  # Extract the address (the part between DA number and description)
-  address = title_reference.match(/DA\d+ - (.*?)(?= - )/) ? title_reference.match(/DA\d+ - (.*?)(?= - )/)[1].strip : 'Address not found'
+  if title_reference_element
+    title_reference = title_reference_element.text.strip
 
-  # Extract the description (everything after the last " - " in the title)
-  description = title_reference.split(' - ').last.strip
+    # Extract the council reference (DA number)
+    council_reference = title_reference.split(' - ').first.strip
 
-  # Extract the "date_received" (Date modified column)
-  date_received = row.at_css('.file_modified').text.strip
-  date_received = Date.parse(date_received).strftime('%Y-%m-%d') # Reformat to YYYY-MM-DD
+    # Extract the address (the part between DA number and description)
+    address = title_reference.match(/DA\d+ - (.*?)(?= - )/) ? title_reference.match(/DA\d+ - (.*?)(?= - )/)[1].strip : 'Address not found'
 
-  # Extract the PDF link (from the Download column)
-  document_description = row.at_css('.wpfd_downloadlink')['href']
+    # Extract the description (everything after the last " - " in the title)
+    description = title_reference.split(' - ').last.strip
 
-  # Calculate "on_notice_to" date as 14 days after the "date_received"
-  on_notice_to = (Date.parse(date_received) + 14).strftime('%Y-%m-%d')
+    # Extract the "date_received" (Date modified column)
+    date_received = row.at_css('.file_modified') ? row.at_css('.file_modified').text.strip : 'Date not found'
+    date_received = Date.parse(date_received).strftime('%Y-%m-%d') if date_received != 'Date not found'
 
-  # Output the extracted information
-  logger.info("Council Reference: #{council_reference}")
-  logger.info("Address: #{address}")
-  logger.info("Description: #{description}")
-  logger.info("Date Received: #{date_received}")
-  logger.info("On Notice To: #{on_notice_to}")
-  logger.info("PDF Link: #{document_description}")
-  logger.info("-----------------------------------")
+    # Extract the PDF link (from the Download column)
+    document_description = row.at_css('.wpfd_downloadlink')['href'] if row.at_css('.wpfd_downloadlink')
 
-  # Step 5: Ensure the entry does not already exist before inserting
-  existing_entry = db.execute("SELECT * FROM waratah_wynyard WHERE council_reference = ?", council_reference)
+    # Calculate "on_notice_to" date as 14 days after the "date_received"
+    on_notice_to = (Date.parse(date_received) + 14).strftime('%Y-%m-%d') if date_received != 'Date not found'
 
-  if existing_entry.empty?  # Only insert if the entry doesn't already exist
-    # Save data to the database
-    db.execute("INSERT INTO waratah_wynyard 
-      (description, date_scraped, date_received, on_notice_to, council_reference, document_description, title_reference) 
-      VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [description, date_scraped, date_received, on_notice_to, council_reference, document_description, title_reference])
+    # Log the extracted data
+    logger.info("Council Reference: #{council_reference}")
+    logger.info("Address: #{address}")
+    logger.info("Description: #{description}")
+    logger.info("Date Received: #{date_received}")
+    logger.info("On Notice To: #{on_notice_to}")
+    logger.info("PDF Link: #{document_description}")
+    logger.info("-----------------------------------")
 
-    logger.info("Data for #{council_reference} saved to database.")
+    # Step 5: Ensure the entry does not already exist before inserting
+    existing_entry = db.execute("SELECT * FROM waratah_wynyard WHERE council_reference = ?", council_reference)
+
+    if existing_entry.empty?  # Only insert if the entry doesn't already exist
+      # Save data to the database
+      db.execute("INSERT INTO waratah_wynyard 
+        (description, date_scraped, date_received, on_notice_to, council_reference, document_description, title_reference) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [description, date_scraped, date_received, on_notice_to, council_reference, document_description, title_reference])
+
+      logger.info("Data for #{council_reference} saved to database.")
+    else
+      logger.info("Duplicate entry for document #{council_reference} found. Skipping insertion.")
+    end
   else
-    logger.info("Duplicate entry for document #{council_reference} found. Skipping insertion.")
+    logger.warn("No title found for row #{index}. Skipping row.")
   end
 end
 
