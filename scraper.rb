@@ -3,8 +3,9 @@ require 'open-uri'
 require 'sqlite3'
 require 'logger'
 require 'date'
+require 'cgi'
 
-# Initialize the logger
+# Set up a logger to log the scraped data
 logger = Logger.new(STDOUT)
 
 # Define the URL of the page
@@ -59,9 +60,11 @@ stage_status = ''
 document_description = ''
 date_scraped = Date.today.to_s
 
+logger.info("Start Extraction of Data")
+
 doc.css('.wpfd-search-result').each_with_index do |row, index|
 # Extract the title from the <a> tag's title attribute
-title_reference = row.at_css('.wpfd_downloadlink')['title']
+# title_reference = row.at_css('.wpfd_downloadlink')['title']
 
 # Extract council reference (DA number from the title)
 council_reference = title_reference.split(' - ').first
@@ -78,10 +81,14 @@ on_notice_to = title_reference.match(/(\d{1,2} [A-Za-z]+ \d{4})/)&.captures&.fir
 # Document URL (from the <a> tag in the 'Download' column)
 document_description = row.at_css('.wpfd_downloadlink')['href']
 
-# Log the extracted data for debugging purposes
-logger.info("Extracted Data: Title: #{description}, Address: #{address}, Council Reference: #{council_reference}, On Notice To: #{on_notice_to}, Document URL: #{document_description}")
+# Output the extracted information
+  logger.info("Council Reference: #{council_reference}")
+  logger.info("Address: #{address}")
+  logger.info("Description: #{description}")
+  logger.info("On Notice To: #{on_notice_to}")
+  logger.info("PDF Link: #{document_description}")
+  logger.info("-----------------------------------")
 
-  
   # Step 5: Ensure the entry does not already exist before inserting
   existing_entry = db.execute("SELECT * FROM waratah_wynyard WHERE council_reference = ?", council_reference)
 
